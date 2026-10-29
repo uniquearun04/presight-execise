@@ -2,7 +2,7 @@
   "name": "presight-execise",
   "version": "1.0.0",
   "repository": "",
-  "author": "",
+  "author": "Arun Chaudhary",
   "license": "MIT",
   "workspaces": [
     "client",
