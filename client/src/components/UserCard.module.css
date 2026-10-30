@@ -1,0 +1,86 @@
+
+.card {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.content {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.avatar {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.userDetails {
+    flex: 1;
+    min-width: 0;
+}
+
+.name {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    overflow-wrap: anywhere;
+}
+
+.userInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.nationality {
+    font-size: 14px;
+    color: #4b5563;
+    overflow-wrap: anywhere;
+}
+
+.age {
+    font-size: 14px;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.hobbies {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.hobby {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border-radius: 9999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.remainingCount {
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border-radius: 9999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+}

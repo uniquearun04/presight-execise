@@ -1,4 +1,7 @@
-export default function UserCard({user}) {
+
+import styles from "./UserCard.module.css";
+
+export default function UserCard({ user }) {
     const {
         avatar,
         firstName,
@@ -8,53 +11,57 @@ export default function UserCard({user}) {
         hobbies = [],
     } = user;
 
+    const visibleHobbies = hobbies.slice(0, 2);
+    const remainingCount = Math.max(hobbies.length - 2, 0);
+
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-            <div className="flex items-center gap-4">
-                <img 
-                    src={avatar} 
+        <div className={styles.card}>
+            <div className={styles.content}>
+
+                {/* Avatar */}
+                <img
+                    src={avatar}
                     alt={`${firstName} ${lastName}`}
-                    className="h-16 w-16 rounded-full object-cover"
+                    className={styles.avatar}
                 />
-                <div >
-                    <h2 className="text-lg font-semibold text-gray-900">
+
+                {/* User Details */}
+                <div className={styles.userDetails}>
+
+                    <h2 className={styles.name}>
                         {firstName} {lastName}
                     </h2>
 
-                    <p className="text-sm text-gray-500">
-                        {age} years old
-                    </p>
-
-                    <p className="mt-1 text-sm text-gray-600">
-                        📍 {nationality}
-                    </p>
-                </div>
-            </div>
-
-            <div className="mt-4 border-t border-gray-100 pt-3">
-                <h3 className="mb-2 text-sm font-medium text-gray-700">
-                    Hobbies
-                </h3>
-
-                <div className="flex flex-wrap gap-2">
-
-                    {hobbies.length > 0 ? (
-                        hobbies.map((hobby) => (
-                            <span
-                                key={hobby}
-                                className="rounded-full bg-blue-50 px3 py-1 text-xs font-medium text-blue-700"
-                            >
-
-                            </span>
-                        ))
-                    ) : (
-                        <span className="text-sm text-gray-400">
-                            No hobbies listed
+                    <div className={styles.userInfo}>
+                        <span className={styles.nationality}>
+                            {nationality}
                         </span>
-                    )}
+
+                        <span className={styles.age}>
+                            {age} years
+                        </span>
+                    </div>
+
+                    {/* Hobbies */}
+                    <div className={styles.hobbies}>
+                        {visibleHobbies.map((hobby, index) => (
+                            <span
+                                key={`${hobby}-${index}`}
+                                className={styles.hobby}
+                            >
+                                {hobby}
+                            </span>
+                        ))}
+
+                        {remainingCount > 0 && (
+                            <span className={styles.remainingCount}>
+                                +{remainingCount}
+                            </span>
+                        )}
+                    </div>
+
                 </div>
             </div>
-
         </div>
     );
 }
