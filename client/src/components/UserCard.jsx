@@ -18,7 +18,7 @@ export default function UserCard({user}) {
                 />
                 <div >
                     <h2 className="text-lg font-semibold text-gray-900">
-                        {first_name} {last_name}
+                        {firstName} {lastName}
                     </h2>
 
                     <p className="text-sm text-gray-500">

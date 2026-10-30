@@ -1,11 +1,12 @@
+import UserCard from "./components/UserCard";
 
 export default function App() {
 
     const users = [
   {
     id: 1,
-    first_name: 'Rahul',
-    last_name: 'Sharma',
+    firstName: 'Rahul',
+    lastName: 'Sharma',
     age: 28,
     nationality: 'Indian',
     avatar: 'https://i.pravatar.cc/150?img=12',
@@ -13,8 +14,8 @@ export default function App() {
   },
   {
     id: 2,
-    first_name: 'Emma',
-    last_name: 'Wilson',
+    firstName: 'Emma',
+    lastName: 'Wilson',
     age: 32,
     nationality: 'British',
     avatar: 'https://i.pravatar.cc/150?img=47',
@@ -22,8 +23,8 @@ export default function App() {
   },
   {
     id: 3,
-    first_name: 'John',
-    last_name: 'Smith',
+    firstName: 'John',
+    lastName: 'Smith',
     age: 25,
     nationality: 'American',
     avatar: 'https://i.pravatar.cc/150?img=11',
@@ -44,7 +45,7 @@ export default function App() {
           {users.map((user) => (
             <UserCard key={user.id} user={user} />
           ))}
-        </div>
+     </div>
     </main>
   );
 }
