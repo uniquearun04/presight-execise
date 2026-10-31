@@ -61,26 +61,43 @@ export default function App() {
                 Total Users: {users.length}
             </p>
 
-            <FilterSidebar
-                nationalities={nationalities}
-                hobbies={hobbies}
-                selectedNationalities={selectedNationalities}
-                selectedHobbies={selectedHobbies}
-                onNationalityChange={toggleNationality}
-                onHobbyChange={toggleHobby}
-                onClearFilters={clearFilters}
-            />
-            <p>Matching users: {filteredUsers.length}</p>
-
-            <div className={styles.scrollContainer}>
-                <div className={styles.userGrid}>
-                    {users.map((user) => (
-                        <UserCard
-                            key={user.id}
-                            user={user}
-                        />
-                    ))}
-                </div>
+            <div className={styles.layout}>
+                <FilterSidebar
+                    nationalities={nationalities}
+                    hobbies={hobbies}
+                    selectedNationalities={selectedNationalities}
+                    selectedHobbies={selectedHobbies}
+                    onNationalityChange={toggleNationality}
+                    onHobbyChange={toggleHobby}
+                    onClearFilters={clearFilters}
+                />
+                <section className={styles.results}>
+                    <h2 className={styles.resultsTitle}>
+                        Users ({filteredUsers.length})
+                    </h2>
+                    {filteredUsers.length > 0 ? (
+                        <div className={styles.scrollContainer}>
+                            <div className={styles.userGrid}>
+                                {filteredUsers.map((user) => (
+                                    <UserCard
+                                        key={user.id}
+                                        user={user}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className={styles.emptyState}>
+                            <p>No users match your filters.</p>
+                            <button
+                                className={styles.clearButton}
+                                onClick={clearFilters}
+                            >
+                                Clear Filters
+                            </button>
+                        </div>
+                    )}
+                </section>
             </div>
         </main>
     );
