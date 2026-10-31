@@ -1,0 +1,140 @@
+
+.sidebar {
+    width: 100%;
+    min-width: 0;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.clearButton {
+    border: none;
+    background: none;
+    color: #2563eb;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.clearButton:disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Selected filter chips */
+
+.selectedFilters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.chip {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.chip:hover {
+    background: #dbeafe;
+}
+
+/* Filter groups */
+
+.filterGroup {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 16px;
+    margin-top: 16px;
+}
+
+.groupHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.groupTitle {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.groupCount {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.optionList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.filterOption {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: #2563eb;
+    flex-shrink: 0;
+}
+
+.optionName {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    color: #374151;
+    overflow-wrap: anywhere;
+}
+
+.optionCount {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.empty {
+    font-size: 13px;
+    color: #9ca3af;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+    .sidebar {
+        padding: 16px;
+    }
+
+    .optionList {
+        max-height: 200px;
+    }
+}
