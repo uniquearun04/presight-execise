@@ -45,3 +45,84 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+.container {
+    min-height: 100vh;
+    padding: 24px;
+    background-color: #f3f4f6;
+}
+
+.title {
+    margin: 0 0 24px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #1d4ed8;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+}
+
+.results {
+    min-width: 0;
+}
+
+.resultsTitle {
+    margin: 0 0 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.userGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.emptyState {
+    padding: 48px 24px;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.clearButton {
+    margin-top: 12px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: #2563eb;
+    color: white;
+    cursor: pointer;
+}
+
+.clearButton:hover {
+    background-color: #1d4ed8;
+}
+
+@media (max-width: 1100px) {
+    .userGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 16px;
+    }
+
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .userGrid {
+        grid-template-columns: 1fr;
+    }
+}
