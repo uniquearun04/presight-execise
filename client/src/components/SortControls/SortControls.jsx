@@ -16,7 +16,8 @@ export default function SortControls({
                     onChange={(event) => onSortFieldChange(event.target.value)}
                     className={styles.select}
                 >
-                    <option value="name">Name</option>
+                    <option value="first_name">Name</option>
+                    <option value="last_name">Last name</option>
                     <option value="age">Age</option>
                     <option value="nationality">Nationality</option>
                 </select>

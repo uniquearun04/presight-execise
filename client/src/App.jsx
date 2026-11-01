@@ -1,6 +1,5 @@
 
 import UserCard from "./components/UserCard/UserCard";
-import users from "./data/users";
 import styles from "./App.module.css";
 import { useEffect, useMemo, useState } from "react";
 import FilterSidebar from "./components/FilterSidebar/FilterSidebar";
@@ -8,21 +7,110 @@ import SearchBar from "./components/SearchBar/SearchBar";
 import SortControls from "./components/SortControls/SortControls";
 import UserListState from "./components/UserListState/UserListState";
 
-import { fetchUsers } from "./service/userService";
+import { fetchUsers } from "./services/userApi";
 import VirtualUserList from "./components/VirtualUserList/VirtualUserList";
 
+const PAGE_SIZE = 20;
+
 export default function App() {
-    
-    const [selectedNationalities, setSelectedNationalities] = useState([]);
-    const [selectedHobbies, setSelectedHobbies] = useState([]);
-    const [searchText, setSearchText] = useState("");
-    const [sortField, setSortField] = useState("name");
-    const [sortDirection, setSortDirection] = useState("asc");
 
     const [allUsers, setAllUsers] = useState([]);
+    // Filter and sorting state
+    const [selectedNationalities, setSelectedNationalities] = useState([]);
+    const [selectedHobbies, setSelectedHobbies] = useState([]);
+
+    const [searchText, setSearchText] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
+    const [sortField, setSortField] = useState("first_name");
+    const [sortDirection, setSortDirection] = useState("asc");
+
+    // Backend response state
+    const [users, setUsers] = useState([]);
+    const [pagination, setPagination] = useState(null);
+
+    const [facets, setFacets] = useState({
+        nationalities: [],
+        hobbies: [],
+    });
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
+
+    // Debounce name search
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            setDebouncedSearch(searchText);
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [searchText]);
+
+    // Fetch users whenever filters or sorting change
+    useEffect(() => {
+        const controller = new AbortController();
+        async function loadUsers() {
+            setLoading(true);
+            setError(null);
+
+            try {
+                const response = await fetchUsers({
+                    search: debouncedSearch,
+                    nationalities: selectedNationalities,
+                    hobbies: selectedHobbies,
+                    sortBy: sortField,
+                    sortDirection,
+                    limit: PAGE_SIZE,
+                    offset: 0,
+                    signal: controller.signal,
+                });
+
+                if (controller.signal.aborted) return;
+
+                setUsers(response.users);
+                setPagination(response.pagination);
+                // setFacets(response.facets);
+
+                // API returns {value, count}.
+                // Sidebar expects {name, count}.
+                setFacets({
+                    nationalities:
+                        response.facets.nationalities.map(
+                            ({ value, count }) => ({
+                                name: value,
+                                count,
+                            })
+                        ),
+                    hobbies: response.facets.hobbies.map(
+                        ({ value, count }) => ({
+                            name: value,
+                            count,
+                        })
+                    ),
+                });
+
+            } catch (err) {
+                if (controller.signal.aborted) {
+                    return;
+                }
+                setError(err.message);
+                setUsers([]);
+                setPagination(null);
+                setFacets({
+                    nationalities: [],
+                    hobbies: [],
+                });
+            } finally {
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
+            }
+
+        }
+        loadUsers();
+        return () => controller.abort();
+    }, [debouncedSearch, selectedNationalities, selectedHobbies, sortField, sortDirection, retryCount]);
 
     function toggleNationality(value) {
         setSelectedNationalities((previous) => previous.includes(value) ? previous.filter((item) => item !== value) : [...previous, value]);
@@ -43,90 +131,90 @@ export default function App() {
         setSelectedHobbies([]);
 }
 
-    const filteredUsers = useMemo(() => {
-        const search = searchText.trim().toLowerCase();
-        return allUsers.filter((user) => {
-            const firstName = user.firstName.toLowerCase();
-            const lastName = user.lastName.toLowerCase();
-            const fullName = `${firstName} ${lastName}`;
+    // const filteredUsers = useMemo(() => {
+    //     const search = searchText.trim().toLowerCase();
+    //     return allUsers.filter((user) => {
+    //         const firstName = user.firstName.toLowerCase();
+    //         const lastName = user.lastName.toLowerCase();
+    //         const fullName = `${firstName} ${lastName}`;
 
-            const matchedSearch = search === "" || firstName.includes(search) || lastName.includes(search) || fullName.includes(search)
-            const matchesNationality = selectedNationalities.length === 0 || selectedNationalities.includes(user.nationality);
-            const matchesHobby = selectedHobbies.length === 0 || selectedHobbies.some((hobby) => user.hobbies.includes(hobby));
+    //         const matchedSearch = search === "" || firstName.includes(search) || lastName.includes(search) || fullName.includes(search)
+    //         const matchesNationality = selectedNationalities.length === 0 || selectedNationalities.includes(user.nationality);
+    //         const matchesHobby = selectedHobbies.length === 0 || selectedHobbies.some((hobby) => user.hobbies.includes(hobby));
             
-            return matchedSearch && matchesNationality && matchesHobby;
-        });
-    }, [allUsers, searchText, selectedNationalities, selectedHobbies]);
+    //         return matchedSearch && matchesNationality && matchesHobby;
+    //     });
+    // }, [allUsers, searchText, selectedNationalities, selectedHobbies]);
 
-    const sortedUsers = useMemo(() => {
-        return [...filteredUsers].sort((a, b) => {
-            let comparision = 0;
-            switch(sortField) {
-                case "age":
-                    comparision = a.age - b.age;
-                    break;
-                case "nationality":
-                    comparision = a.nationality.localeCompare(b.nationality);
-                    break;
-                case name:
-                default: 
-                    const nameA = `${a.firstName} ${a.lastName}`;
-                    const nameB = `${b.firstName} ${b.lastName}`
-                    comparision = nameA.localeCompare(nameB);
-                    break;
-            }
-            const direction = sortDirection === "asc" ? 1 : -1;
-            return comparision * direction || a.id - b.id;
-        });
-    }, [filteredUsers, sortField, sortDirection]);
+    // const sortedUsers = useMemo(() => {
+    //     return [...filteredUsers].sort((a, b) => {
+    //         let comparision = 0;
+    //         switch(sortField) {
+    //             case "age":
+    //                 comparision = a.age - b.age;
+    //                 break;
+    //             case "nationality":
+    //                 comparision = a.nationality.localeCompare(b.nationality);
+    //                 break;
+    //             case name:
+    //             default: 
+    //                 const nameA = `${a.firstName} ${a.lastName}`;
+    //                 const nameB = `${b.firstName} ${b.lastName}`
+    //                 comparision = nameA.localeCompare(nameB);
+    //                 break;
+    //         }
+    //         const direction = sortDirection === "asc" ? 1 : -1;
+    //         return comparision * direction || a.id - b.id;
+    //     });
+    // }, [filteredUsers, sortField, sortDirection]);
 
-    function calculateFacets(filteredUsers, field) {
-        const countsMap = new Map();
-        filteredUsers.forEach((user) => {
-            const values = Array.isArray(user[field]) ? user[field] : [user[field]];
-            new Set(values).forEach((value) => {
-                if (!value) return;
-                countsMap.set(value, (countsMap.get(value) || 0) + 1);
-            });
-        });
-        return [...countsMap.entries()]
-            .map(([name, count]) => ({name, count}))
-            .sort((a, b) => 
-                b.count - a.count || a.name.localeCompare(b.name)
-            )
-            .slice(0, 20);
-    }
+    // function calculateFacets(filteredUsers, field) {
+    //     const countsMap = new Map();
+    //     filteredUsers.forEach((user) => {
+    //         const values = Array.isArray(user[field]) ? user[field] : [user[field]];
+    //         new Set(values).forEach((value) => {
+    //             if (!value) return;
+    //             countsMap.set(value, (countsMap.get(value) || 0) + 1);
+    //         });
+    //     });
+    //     return [...countsMap.entries()]
+    //         .map(([name, count]) => ({name, count}))
+    //         .sort((a, b) => 
+    //             b.count - a.count || a.name.localeCompare(b.name)
+    //         )
+    //         .slice(0, 20);
+    // }
 
-    const nationalities = useMemo(() => calculateFacets(filteredUsers, "nationality"), [filteredUsers]);
-    const hobbies = useMemo(() => calculateFacets(filteredUsers, "hobbies"), [filteredUsers]);
+    // const nationalities = useMemo(() => calculateFacets(filteredUsers, "nationality"), [filteredUsers]);
+    // const hobbies = useMemo(() => calculateFacets(filteredUsers, "hobbies"), [filteredUsers]);
 
-    useEffect(() => {
-        let cancelled = false;
+    // useEffect(() => {
+    //     let cancelled = false;
 
-        async function loadUsers() {
-            setLoading(true);
-            setError(null);
-            try {
-                const result = await fetchUsers();
+    //     async function loadUsers() {
+    //         setLoading(true);
+    //         setError(null);
+    //         try {
+    //             const result = await fetchUsers();
 
-                if (!cancelled) {
-                    setAllUsers(result);
-                }
-            } catch (err) {
-                if (!cancelled) {
-                    setError(err.message || "Unknown error");
-                }
-            } finally {
-                if (!cancelled) {
-                    setLoading(false);
-                }
-            }
-        }
-        loadUsers();
-        return () => {
-            cancelled = true;
-        };
-    }, [retryCount]);
+    //             if (!cancelled) {
+    //                 setAllUsers(result);
+    //             }
+    //         } catch (err) {
+    //             if (!cancelled) {
+    //                 setError(err.message || "Unknown error");
+    //             }
+    //         } finally {
+    //             if (!cancelled) {
+    //                 setLoading(false);
+    //             }
+    //         }
+    //     }
+    //     loadUsers();
+    //     return () => {
+    //         cancelled = true;
+    //     };
+    // }, [retryCount]);
 
     function retryLoading() {
         setRetryCount((previous) => previous + 1);
