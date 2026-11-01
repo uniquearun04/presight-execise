@@ -29,3 +29,7 @@ yarn-error.log*
 
 .parcel-cache
 .idea/
+
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
