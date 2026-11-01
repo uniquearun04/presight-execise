@@ -126,3 +126,38 @@
         grid-template-columns: 1fr;
     }
 }
+
+.resultsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.paginationInfo {
+    margin-top: 16px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.results {
+    min-width: 0;
+}
+
+.resultsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.paginationInfo {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 13px;
+    color: #6b7280;
+}

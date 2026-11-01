@@ -1,31 +1,33 @@
 
-import UserCard from "./components/UserCard/UserCard";
-import styles from "./App.module.css";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import FilterSidebar from "./components/FilterSidebar/FilterSidebar";
 import SearchBar from "./components/SearchBar/SearchBar";
 import SortControls from "./components/SortControls/SortControls";
 import UserListState from "./components/UserListState/UserListState";
+import VirtualUserList from "./components/VirtualUserList/VirtualUserList";
 
 import { fetchUsers } from "./services/userApi";
-import VirtualUserList from "./components/VirtualUserList/VirtualUserList";
+import styles from "./App.module.css";
 
 const PAGE_SIZE = 20;
 
 export default function App() {
+    // Filters
+    const [selectedNationalities, setSelectedNationalities] =
+        useState([]);
+    const [selectedHobbies, setSelectedHobbies] =
+        useState([]);
 
-    const [allUsers, setAllUsers] = useState([]);
-    // Filter and sorting state
-    const [selectedNationalities, setSelectedNationalities] = useState([]);
-    const [selectedHobbies, setSelectedHobbies] = useState([]);
-
+    // Search
     const [searchText, setSearchText] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
 
+    // Sorting
     const [sortField, setSortField] = useState("first_name");
     const [sortDirection, setSortDirection] = useState("asc");
 
-    // Backend response state
+    // API data
     const [users, setUsers] = useState([]);
     const [pagination, setPagination] = useState(null);
 
@@ -34,11 +36,21 @@ export default function App() {
         hobbies: [],
     });
 
+    // Request states
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [loadMoreError, setLoadMoreError] = useState(null);
     const [retryCount, setRetryCount] = useState(0);
 
-    // Debounce name search
+    // Prevent duplicate requests
+    const pageRequestInProgress = useRef(false);
+    const pageControllerRef = useRef(null);
+
+    // Identify the current search/filter request generation
+    const requestGeneration = useRef(0);
+
+    // Debounce search input
     useEffect(() => {
         const timeout = setTimeout(() => {
             setDebouncedSearch(searchText);
@@ -47,13 +59,26 @@ export default function App() {
         return () => clearTimeout(timeout);
     }, [searchText]);
 
-    // Fetch users whenever filters or sorting change
+    // Load the FIRST page whenever search,
+    // filters, sorting, or retry changes
     useEffect(() => {
         const controller = new AbortController();
-        async function loadUsers() {
-            setLoading(true);
-            setError(null);
 
+        const generation = ++requestGeneration.current;
+
+        // Cancel any previous next-page request
+        pageControllerRef.current?.abort();
+        pageRequestInProgress.current = false;
+
+        setLoading(true);
+        setError(null);
+        setLoadMoreError(null);
+        setIsLoadingMore(false);
+
+        setUsers([]);
+        setPagination(null);
+
+        async function loadFirstPage() {
             try {
                 const response = await fetchUsers({
                     search: debouncedSearch,
@@ -66,58 +91,152 @@ export default function App() {
                     signal: controller.signal,
                 });
 
-                if (controller.signal.aborted) return;
+                if (
+                    controller.signal.aborted ||
+                    generation !== requestGeneration.current
+                ) {
+                    return;
+                }
 
                 setUsers(response.users);
                 setPagination(response.pagination);
-                // setFacets(response.facets);
-
-                // API returns {value, count}.
-                // Sidebar expects {name, count}.
-                setFacets({
-                    nationalities:
-                        response.facets.nationalities.map(
-                            ({ value, count }) => ({
-                                name: value,
-                                count,
-                            })
-                        ),
-                    hobbies: response.facets.hobbies.map(
-                        ({ value, count }) => ({
-                            name: value,
-                            count,
-                        })
-                    ),
-                });
+                setFacets(response.facets);
 
             } catch (err) {
-                if (controller.signal.aborted) {
+                if (
+                    controller.signal.aborted ||
+                    generation !== requestGeneration.current
+                ) {
                     return;
                 }
-                setError(err.message);
-                setUsers([]);
-                setPagination(null);
-                setFacets({
-                    nationalities: [],
-                    hobbies: [],
-                });
+
+                console.error("Failed to load users:", err);
+
+                setError(err.message || "Failed to load users");
+
             } finally {
-                if (!controller.signal.aborted) {
+                if (
+                    !controller.signal.aborted &&
+                    generation === requestGeneration.current
+                ) {
                     setLoading(false);
                 }
             }
-
         }
-        loadUsers();
-        return () => controller.abort();
-    }, [debouncedSearch, selectedNationalities, selectedHobbies, sortField, sortDirection, retryCount]);
+
+        loadFirstPage();
+
+        return () => {
+            controller.abort();
+            pageControllerRef.current?.abort();
+            requestGeneration.current++;
+        };
+    }, [
+        debouncedSearch,
+        selectedNationalities,
+        selectedHobbies,
+        sortField,
+        sortDirection,
+        retryCount,
+    ]);
+
+    // Load the NEXT page
+    const loadMoreUsers = useCallback(async () => {
+        if (
+            loading ||
+            pageRequestInProgress.current ||
+            !pagination?.hasMore ||
+            pagination.nextOffset == null
+        ) {
+            return;
+        }
+
+        pageRequestInProgress.current = true;
+
+        const controller = new AbortController();
+        pageControllerRef.current = controller;
+
+        const generation = requestGeneration.current;
+
+        setIsLoadingMore(true);
+        setLoadMoreError(null);
+
+        try {
+            const response = await fetchUsers({
+                search: debouncedSearch,
+                nationalities: selectedNationalities,
+                hobbies: selectedHobbies,
+                sortBy: sortField,
+                sortDirection,
+                limit: PAGE_SIZE,
+                offset: pagination.nextOffset,
+                signal: controller.signal,
+            });
+
+            if (
+                controller.signal.aborted ||
+                generation !== requestGeneration.current
+            ) {
+                return;
+            }
+
+            // Append rather than replace existing users
+            setUsers((previous) => [
+                ...previous,
+                ...response.users,
+            ]);
+
+            setPagination(response.pagination);
+
+            // Facets describe the entire filtered result set,
+            // not just the newly fetched page.
+            setFacets(response.facets);
+
+        } catch (err) {
+            if (
+                controller.signal.aborted ||
+                generation !== requestGeneration.current
+            ) {
+                return;
+            }
+
+            console.error("Failed to load next page:", err);
+
+            setLoadMoreError(
+                err.message || "Could not load more users"
+            );
+
+        } finally {
+            if (generation === requestGeneration.current) {
+                pageRequestInProgress.current = false;
+                pageControllerRef.current = null;
+                setIsLoadingMore(false);
+            }
+        }
+    }, [
+        loading,
+        pagination,
+        debouncedSearch,
+        selectedNationalities,
+        selectedHobbies,
+        sortField,
+        sortDirection,
+    ]);
 
     function toggleNationality(value) {
-        setSelectedNationalities((previous) => previous.includes(value) ? previous.filter((item) => item !== value) : [...previous, value]);
+        setSelectedNationalities((previous) =>
+            previous.includes(value)
+                ? previous.filter((item) => item !== value)
+                : [...previous, value]
+        );
     }
 
     function toggleHobby(value) {
-        setSelectedHobbies((previous) => previous.includes(value) ? previous.filter((item) => item !== value) : [...previous, value]);
+        setSelectedHobbies((previous) =>
+            previous.includes(value)
+                ? previous.filter((item) => item !== value)
+                : [...previous, value]
+        );
     }
 
     function clearFilters() {
@@ -126,95 +245,10 @@ export default function App() {
     }
 
     function clearAllFilters() {
+        clearFilters();
         setSearchText("");
-        setSelectedNationalities([]);
-        setSelectedHobbies([]);
-}
-
-    // const filteredUsers = useMemo(() => {
-    //     const search = searchText.trim().toLowerCase();
-    //     return allUsers.filter((user) => {
-    //         const firstName = user.firstName.toLowerCase();
-    //         const lastName = user.lastName.toLowerCase();
-    //         const fullName = `${firstName} ${lastName}`;
-
-    //         const matchedSearch = search === "" || firstName.includes(search) || lastName.includes(search) || fullName.includes(search)
-    //         const matchesNationality = selectedNationalities.length === 0 || selectedNationalities.includes(user.nationality);
-    //         const matchesHobby = selectedHobbies.length === 0 || selectedHobbies.some((hobby) => user.hobbies.includes(hobby));
-            
-    //         return matchedSearch && matchesNationality && matchesHobby;
-    //     });
-    // }, [allUsers, searchText, selectedNationalities, selectedHobbies]);
-
-    // const sortedUsers = useMemo(() => {
-    //     return [...filteredUsers].sort((a, b) => {
-    //         let comparision = 0;
-    //         switch(sortField) {
-    //             case "age":
-    //                 comparision = a.age - b.age;
-    //                 break;
-    //             case "nationality":
-    //                 comparision = a.nationality.localeCompare(b.nationality);
-    //                 break;
-    //             case name:
-    //             default: 
-    //                 const nameA = `${a.firstName} ${a.lastName}`;
-    //                 const nameB = `${b.firstName} ${b.lastName}`
-    //                 comparision = nameA.localeCompare(nameB);
-    //                 break;
-    //         }
-    //         const direction = sortDirection === "asc" ? 1 : -1;
-    //         return comparision * direction || a.id - b.id;
-    //     });
-    // }, [filteredUsers, sortField, sortDirection]);
-
-    // function calculateFacets(filteredUsers, field) {
-    //     const countsMap = new Map();
-    //     filteredUsers.forEach((user) => {
-    //         const values = Array.isArray(user[field]) ? user[field] : [user[field]];
-    //         new Set(values).forEach((value) => {
-    //             if (!value) return;
-    //             countsMap.set(value, (countsMap.get(value) || 0) + 1);
-    //         });
-    //     });
-    //     return [...countsMap.entries()]
-    //         .map(([name, count]) => ({name, count}))
-    //         .sort((a, b) => 
-    //             b.count - a.count || a.name.localeCompare(b.name)
-    //         )
-    //         .slice(0, 20);
-    // }
-
-    // const nationalities = useMemo(() => calculateFacets(filteredUsers, "nationality"), [filteredUsers]);
-    // const hobbies = useMemo(() => calculateFacets(filteredUsers, "hobbies"), [filteredUsers]);
-
-    // useEffect(() => {
-    //     let cancelled = false;
-
-    //     async function loadUsers() {
-    //         setLoading(true);
-    //         setError(null);
-    //         try {
-    //             const result = await fetchUsers();
-
-    //             if (!cancelled) {
-    //                 setAllUsers(result);
-    //             }
-    //         } catch (err) {
-    //             if (!cancelled) {
-    //                 setError(err.message || "Unknown error");
-    //             }
-    //         } finally {
-    //             if (!cancelled) {
-    //                 setLoading(false);
-    //             }
-    //         }
-    //     }
-    //     loadUsers();
-    //     return () => {
-    //         cancelled = true;
-    //     };
-    // }, [retryCount]);
+        setDebouncedSearch("");
+    }
 
     function retryLoading() {
         setRetryCount((previous) => previous + 1);
@@ -233,43 +267,59 @@ export default function App() {
 
             <div className={styles.layout}>
                 <FilterSidebar
-                    nationalities={nationalities}
-                    hobbies={hobbies}
+                    nationalities={facets.nationalities}
+                    hobbies={facets.hobbies}
                     selectedNationalities={selectedNationalities}
                     selectedHobbies={selectedHobbies}
                     onNationalityChange={toggleNationality}
                     onHobbyChange={toggleHobby}
-                    onClearFilters={clearAllFilters}
+                    onClearFilters={clearFilters}
                 />
-                <section className={styles.results}>
-                    <h2 className={styles.resultsTitle}>
-                        Matching Users ({filteredUsers.length})
-                    </h2>
 
-                    <SortControls 
-                        sortField={sortField}
-                        onSortFieldChange={setSortField}
-                        sortDirection={sortDirection}
-                        onSortDirectionChange={setSortDirection}
-                    />
+                <section className={styles.results}>
+                    <div className={styles.resultsHeader}>
+                        <h2 className={styles.resultsTitle}>
+                            Matching Users (
+                            {loading ? "..." : pagination?.total ?? 0})
+                        </h2>
+
+                        <SortControls
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSortFieldChange={setSortField}
+                            onSortDirectionChange={setSortDirection}
+                        />
+                    </div>
+
                     {loading ? (
-                        <UserListState type="loading"/>
+                        <UserListState type="loading" />
                     ) : error ? (
-                        <UserListState type="error" message={error} onRetry={retryLoading}/>
-                    ) : sortedUsers.length === 0 ? (
-                        <UserListState type="empty" onClear={clearAllFilters} />
+                        <UserListState
+                            type="error"
+                            message={error}
+                            onRetry={retryLoading}
+                        />
+                    ) : users.length === 0 ? (
+                        <UserListState
+                            type="empty"
+                            onClear={clearAllFilters}
+                        />
                     ) : (
-                        // <div className={styles.scrollContainer}>
-                        //     <div className={styles.userGrid}>
-                        //         {sortedUsers.map((user) => (
-                        //             <UserCard
-                        //                 key={user.id}
-                        //                 user={user}
-                        //             />
-                        //         ))}
-                        //     </div>
-                        // </div>
-                        <VirtualUserList users={sortedUsers} />
+                        <>
+                            <VirtualUserList
+                                users={users}
+                                hasMore={pagination?.hasMore ?? false}
+                                isLoadingMore={isLoadingMore}
+                                loadMoreError={loadMoreError}
+                                onLoadMore={loadMoreUsers}
+                                onRetry={loadMoreUsers}
+                            />
+
+                            <p className={styles.paginationInfo}>
+                                Showing {users.length} of{" "}
+                                {pagination?.total ?? 0} users
+                            </p>
+                        </>
                     )}
                 </section>
             </div>

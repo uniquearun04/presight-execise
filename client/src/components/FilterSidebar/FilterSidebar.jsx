@@ -29,6 +29,7 @@ export default function FilterSidebar({
                     {selectedNationalities.map((nationality) => (
                         <button
                             type="button"
+                            key={nationality}
                             className={styles.chip}
                             onClick={() => onNationalityChange(nationality)}
                             aria-label={`Remove ${nationality} nationality filter`}
@@ -39,8 +40,9 @@ export default function FilterSidebar({
                     {selectedHobbies.map((hobby) => (
                         <button
                             type="button"
+                            key={hobby}
                             className={styles.chip}
-                            onClick={() => onNationalityChange(nationality)}
+                            onClick={() => onHobbyChange(hobby)}
                             aria-label={`Remove ${hobby} hobby filter`}
                         >
                             {hobby} x

@@ -52,3 +52,59 @@
     margin-top: 8px;
     color: #16a34a;
 }
+
+
+.container {
+    width: 100%;
+    min-width: 0;
+}
+
+.scrollContainer {
+    height: 600px;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: 8px;
+    overscroll-behavior: contain;
+}
+
+.virtualContent {
+    position: relative;
+    width: 100%;
+}
+
+.virtualRow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding-bottom: 12px;
+    box-sizing: border-box;
+}
+
+.loadMore {
+    padding: 24px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.error {
+    padding: 12px;
+    text-align: center;
+    color: #b91c1c;
+    font-size: 13px;
+}
+
+.retryButton {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+}
+
+.retryButton:hover {
+    background: #1d4ed8;
+}
