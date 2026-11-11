@@ -2,8 +2,6 @@ import express from "express";
 import { seedDatabase } from "./seed.js";
 import { findUsers } from "./userRepository.js";
 
-import routes from "../routes/users.routes.js";
-
 const app = express();
 
 const PORT = Number(process.env.PORT) || 3001;
@@ -33,7 +31,6 @@ app.get("/api/health", (req, res) => {
 });
 
 // Users API
-// app.use("/api/users", routes);
 app.get("/api/users", (req, res) => {
     try {
         const result = findUsers({
